@@ -1,20 +1,511 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simple Map Test</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
-    <style>
-        #map { height: 100vh; width: 100%; } /* Full-screen map */
-        body { margin: 0; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="mobile-web-app-capable" content="yes">
+  <title>Ultra Smooth Navigation</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      position: fixed;
+      overflow: hidden;
+      overscroll-behavior: none;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+      color: #fff;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      width: 200%;
+      height: 200%;
+      top: -50%;
+      left: -50%;
+      z-index: 0;
+      background: 
+        radial-gradient(circle at 20% 50%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(252, 176, 69, 0.3) 0%, transparent 50%);
+      animation: float 15s ease-in-out infinite;
+      will-change: transform;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translate(0, 0); }
+      50% { transform: translate(20px, -20px); }
+    }
+
+    #map {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 1;
+    }
+
+    .container {
+      position: relative;
+      z-index: 2;
+      height: calc(100vh - 90px);
+      padding: 20px;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .content-card {
+      margin-top: 20px;
+      padding: 24px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    h1 {
+      font-size: 32px;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+
+    /* Bottom Navigation Bar */
+    .nav-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 70px;
+      background: rgba(20, 20, 30, 0.95);
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      z-index: 1000;
+      padding: 0 20px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 -5px 30px rgba(0, 0, 0, 0.3);
+    }
+
+    .nav-item {
+      width: 50px;
+      height: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      border-radius: 50%;
+      transition: all 0.3s ease;
+      position: relative;
+    }
+
+    .nav-item i {
+      font-size: 22px;
+      color: rgba(255, 255, 255, 0.5);
+      transition: all 0.3s ease;
+    }
+
+    .nav-item.active {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    }
+
+    .nav-item.active i {
+      color: #fff;
+    }
+
+    /* Bottom Sheet */
+    .bottom-sheet {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      background: #ffffff;
+      border-radius: 24px 24px 0 0;
+      box-shadow: 0 -5px 30px rgba(0, 0, 0, 0.2);
+      z-index: 999;
+      transform: translateY(100%);
+      transition: transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      display: flex;
+      flex-direction: column;
+      max-height: 70vh;
+    }
+
+    .bottom-sheet.open {
+      transform: translateY(0);
+    }
+
+    /* Drag Handle */
+    .sheet-handle {
+      width: 100%;
+      padding: 16px;
+      display: flex;
+      justify-content: center;
+      cursor: grab;
+      touch-action: none;
+      flex-shrink: 0;
+    }
+
+    .sheet-handle:active {
+      cursor: grabbing;
+    }
+
+    .sheet-handle-bar {
+      width: 36px;
+      height: 4px;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 2px;
+      transition: background 0.2s ease;
+    }
+
+    .sheet-handle:active .sheet-handle-bar {
+      background: rgba(0, 0, 0, 0.3);
+    }
+
+    /* Sheet Content */
+    .sheet-content {
+      padding: 0 24px 90px 24px;
+      overflow-y: auto;
+      flex: 1;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .sheet-content::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    .sheet-content::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.05);
+    }
+
+    .sheet-content::-webkit-scrollbar-thumb {
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 2px;
+    }
+
+    .sheet-title {
+      font-size: 26px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: #1a1a2e;
+      opacity: 0;
+      transform: translateY(10px);
+      animation: fadeInUp 0.4s ease forwards;
+    }
+
+    @keyframes fadeInUp {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .sheet-description {
+      color: #666;
+      margin-bottom: 24px;
+      line-height: 1.6;
+      opacity: 0;
+      transform: translateY(10px);
+      animation: fadeInUp 0.4s ease 0.1s forwards;
+    }
+
+    .sheet-body {
+      color: #333;
+      line-height: 1.8;
+      opacity: 0;
+      transform: translateY(10px);
+      animation: fadeInUp 0.4s ease 0.2s forwards;
+    }
+
+    .sheet-body input {
+      width: 100%;
+      padding: 14px 16px;
+      border: 2px solid #e0e0e0;
+      border-radius: 12px;
+      background: #f8f8f8;
+      color: #333;
+      font-size: 16px;
+      outline: none;
+      transition: all 0.3s ease;
+    }
+
+    .sheet-body input:focus {
+      border-color: #667eea;
+      background: #fff;
+    }
+
+    .style-button {
+      width: 100%;
+      padding: 14px 16px;
+      margin-bottom: 10px;
+      border: none;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: #fff;
+      font-size: 16px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-align: left;
+    }
+
+    .style-button:hover {
+      background: linear-gradient(135deg, #764ba2, #f093fb);
+    }
+
+    /* Overlay */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      opacity: 0;
+      visibility: hidden;
+      z-index: 998;
+      transition: all 0.35s ease;
+    }
+
+    .overlay.show {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    /* Responsive */
+    @media (min-width: 768px) {
+      .bottom-sheet {
+        left: 50%;
+        transform: translateX(-50%) translateY(100%);
+        width: 600px;
+        border-radius: 24px;
+      }
+      
+      .bottom-sheet.open {
+        transform: translateX(-50%) translateY(0);
+      }
+
+      .nav-bar {
+        left: 50%;
+        transform: translateX(-50%);
+        width: 600px;
+        border-radius: 24px 24px 0 0;
+      }
+    }
+
+    /* Prevent scroll bounce */
+    .container, .sheet-content {
+      overscroll-behavior: contain;
+    }
+  </style>
 </head>
 <body>
-    <div id="map"></div>
-    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-    <script>window.THUNDERFOREST_API_KEY = "{{ api_key }}";</script>
-    <script src="/static/map.js"></script>
+  <div id="map"></div>
+  <div class="container">
+    <h1>🚀 Ultra Smooth Navigation</h1>
+    <p>Clean, fast, and buttery smooth</p>
+    
+    <div class="content-card">
+      <h3>✨ Features</h3>
+      <p>• Optimized for mobile devices<br>
+      • Zero lag, pure smoothness<br>
+      • Clean modern design<br>
+      • Drag to close gesture</p>
+    </div>
+
+    <div class="content-card">
+      <h3>📱 Full Screen</h3>
+      <p>Designed for immersive experience with edge-to-edge content</p>
+    </div>
+  </div>
+
+  <div class="overlay" id="overlay"></div>
+
+  <div class="bottom-sheet" id="sheet">
+    <div class="sheet-handle" id="handle">
+      <div class="sheet-handle-bar"></div>
+    </div>
+    <div class="sheet-content" id="sheetContent">
+      <h2 class="sheet-title">Welcome</h2>
+      <p class="sheet-description">Tap a navigation item to get started</p>
+    </div>
+  </div>
+
+  <nav class="nav-bar">
+    <button class="nav-item active" data-tab="home">
+      <i class="fas fa-home"></i>
+    </button>
+    
+    <button class="nav-item" data-tab="search">
+      <i class="fas fa-search"></i>
+    </button>
+    
+    <button class="nav-item" data-tab="plus">
+      <i class="fas fa-plus"></i>
+    </button>
+    
+    <button class="nav-item" data-tab="user">
+      <i class="fas fa-user"></i>
+    </button>
+  </nav>
+
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="/static/map.js"></script>
+  <script>
+    // Pass API key from Flask to map.js
+    window.THUNDERFOREST_API_KEY = "{{ THUNDERFOREST_API_KEY }}";
+
+    const sheet = document.getElementById('sheet');
+    const handle = document.getElementById('handle');
+    const overlay = document.getElementById('overlay');
+    const navItems = document.querySelectorAll('.nav-item');
+    const sheetContent = document.getElementById('sheetContent');
+
+    let startY = 0;
+    let currentY = 0;
+    let isDragging = false;
+    let isOpen = false;
+
+    // Handle navigation items
+    navItems.forEach(item => {
+      item.addEventListener('click', () => {
+        navItems.forEach(i => i.classList.remove('active'));
+        item.classList.add('active');
+        
+        const tab = item.dataset.tab;
+        updateContent(tab);
+        openSheet();
+      });
+    });
+
+    // Handle drag start
+    handle.addEventListener('touchstart', (e) => {
+      if (!isOpen) return;
+      isDragging = true;
+      startY = e.touches[0].clientY;
+      sheet.style.transition = 'none';
+    }, { passive: true });
+
+    // Handle drag move
+    document.addEventListener('touchmove', (e) => {
+      if (!isDragging) return;
+      
+      currentY = e.touches[0].clientY;
+      const deltaY = currentY - startY;
+      
+      if (deltaY > 0) {
+        sheet.style.transform = `translateY(${deltaY}px)`;
+        const opacity = Math.max(0, 1 - (deltaY / 300));
+        overlay.style.opacity = opacity;
+      }
+    }, { passive: true });
+
+    // Handle drag end
+    document.addEventListener('touchend', () => {
+      if (!isDragging) return;
+      
+      isDragging = false;
+      sheet.style.transition = 'transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+      overlay.style.transition = 'all 0.35s ease';
+      
+      const deltaY = currentY - startY;
+      
+      if (deltaY > 100) {
+        closeSheet();
+      } else {
+        sheet.style.transform = 'translateY(0)';
+        overlay.style.opacity = '1';
+      }
+    });
+
+    // Overlay click
+    overlay.addEventListener('click', closeSheet);
+
+    function openSheet() {
+      isOpen = true;
+      sheet.classList.add('open');
+      overlay.classList.add('show');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeSheet() {
+      isOpen = false;
+      sheet.classList.remove('open');
+      overlay.classList.remove('show');
+      document.body.style.overflow = '';
+      sheet.style.transform = '';
+      overlay.style.opacity = '';
+    }
+
+    function updateContent(tab) {
+      const contents = {
+        home: {
+          title: '🏠 Home',
+          desc: 'Welcome to your personalized dashboard',
+          body: '<div class="sheet-body"><p>Discover trending content, your recent activities, and personalized recommendations all in one place.</p></div>'
+        },
+        search: {
+          title: '🔍 Search',
+          desc: 'Find what you\'re looking for',
+          body: '<div class="sheet-body"><input type="text" placeholder="Search anything..."></div>'
+        },
+        plus: {
+          title: '➕ Map Styles',
+          desc: 'Choose a map style',
+          body: `
+            <div class="sheet-body">
+              <button class="style-button" onclick="window.changeMapStyle(0)">OpenCycleMap</button>
+              <button class="style-button" onclick="window.changeMapStyle(1)">Transport</button>
+              <button class="style-button" onclick="window.changeMapStyle(2)">Landscape</button>
+              <button class="style-button" onclick="window.changeMapStyle(3)">Outdoors</button>
+              <button class="style-button" onclick="window.changeMapStyle(4)">Transport Dark</button>
+              <button class="style-button" onclick="window.changeMapStyle(5)">Spinal Map</button>
+              <button class="style-button" onclick="window.changeMapStyle(6)">Pioneer</button>
+              <button class="style-button" onclick="window.changeMapStyle(7)">Mobile Atlas</button>
+              <button class="style-button" onclick="window.changeMapStyle(8)">Neighbourhood</button>
+              <button class="style-button" onclick="window.changeMapStyle(9)">Atlas</button>
+            </div>
+          `
+        },
+        user: {
+          title: '👤 Profile',
+          desc: 'Manage your account',
+          body: '<div class="sheet-body"><p>View your profile, update settings, manage preferences, and customize your experience.</p></div>'
+        }
+      };
+
+      const content = contents[tab];
+      
+      // Reset animations
+      sheetContent.innerHTML = `
+        <h2 class="sheet-title">${content.title}</h2>
+        <p class="sheet-description">${content.desc}</p>
+        ${content.body}
+      `;
+    }
+
+    // Prevent sheet content scroll from closing
+    sheetContent.addEventListener('touchstart', (e) => {
+      if (sheetContent.scrollTop === 0) {
+        sheetContent.scrollTop = 1;
+      }
+    }, { passive: true });
+
+    // Prevent body scroll when sheet is open
+    sheet.addEventListener('touchmove', (e) => {
+      e.stopPropagation();
+    }, { passive: true });
+  </script>
 </body>
 </html>
