@@ -1,4 +1,7 @@
-const map = L.map('map').setView([20, 0], 2);
+const map = L.map('map', {
+  zoomControl: false, // Disable zoom controls (+ -)
+  attributionControl: false // Disable Leaflet attribution
+}).setView([20, 0], 2);
 
 // List of 10 Thunderforest styles
 const styles = [
