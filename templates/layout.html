@@ -8,8 +8,8 @@
   <meta name="mobile-web-app-capable" content="yes">
   <title>Ultra Smooth Navigation</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-  <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="icon" href="data:;base64,iVBORw0KGgo=">
   <style>
     * {
       margin: 0;
@@ -39,7 +39,7 @@
       height: 200%;
       top: -50%;
       left: -50%;
-      z-index: 0;
+      z-index: -1;
       background: 
         radial-gradient(circle at 20% 50%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
         radial-gradient(circle at 80% 80%, rgba(252, 176, 69, 0.3) 0%, transparent 50%);
@@ -59,7 +59,7 @@
       width: 100vw;
       height: 100vh;
       z-index: 0;
-      background: #000; /* Fallback background if tiles fail */
+      background: #000;
     }
 
     /* Bottom Navigation Bar */
@@ -321,152 +321,153 @@
     </button>
   </nav>
 
-  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-  <script src="/static/map.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="/static/map.js" defer></script>
   <script>
-    // Pass API key from Flask to map.js
-    window.THUNDERFOREST_API_KEY = "{{ THUNDERFOREST_API_KEY }}";
+    // Fallback for changeMapStyle
+    window.changeMapStyle = window.changeMapStyle || function(index) {
+      console.warn('changeMapStyle not loaded, index:', index);
+    };
 
-    const sheet = document.getElementById('sheet');
-    const handle = document.getElementById('handle');
-    const overlay = document.getElementById('overlay');
-    const navItems = document.querySelectorAll('.nav-item');
-    const sheetContent = document.getElementById('sheetContent');
+    // Wait for DOM and scripts to load
+    document.addEventListener('DOMContentLoaded', () => {
+      console.log('DOM loaded, initializing UI');
 
-    let startY = 0;
-    let currentY = 0;
-    let isDragging = false;
-    let isOpen = false;
+      const sheet = document.getElementById('sheet');
+      const handle = document.getElementById('handle');
+      const overlay = document.getElementById('overlay');
+      const navItems = document.querySelectorAll('.nav-item');
+      const sheetContent = document.getElementById('sheetContent');
 
-    // Handle navigation items
-    navItems.forEach(item => {
-      item.addEventListener('click', () => {
-        navItems.forEach(i => i.classList.remove('active'));
-        item.classList.add('active');
-        
-        const tab = item.dataset.tab;
-        updateContent(tab);
-        openSheet();
+      let startY = 0;
+      let currentY = 0;
+      let isDragging = false;
+      let isOpen = false;
+
+      // Handle navigation items
+      navItems.forEach(item => {
+        item.addEventListener('click', () => {
+          navItems.forEach(i => i.classList.remove('active'));
+          item.classList.add('active');
+          
+          const tab = item.dataset.tab;
+          updateContent(tab);
+          openSheet();
+        });
       });
-    });
 
-    // Handle drag start
-    handle.addEventListener('touchstart', (e) => {
-      if (!isOpen) return;
-      isDragging = true;
-      startY = e.touches[0].clientY;
-      sheet.style.transition = 'none';
-    }, { passive: true });
+      // Handle drag start
+      handle.addEventListener('touchstart', (e) => {
+        if (!isOpen) return;
+        isDragging = true;
+        startY = e.touches[0].clientY;
+        sheet.style.transition = 'none';
+      }, { passive: true });
 
-    // Handle drag move
-    document.addEventListener('touchmove', (e) => {
-      if (!isDragging) return;
-      
-      currentY = e.touches[0].clientY;
-      const deltaY = currentY - startY;
-      
-      if (deltaY > 0) {
-        sheet.style.transform = `translateY(${deltaY}px)`;
-        const opacity = Math.max(0, 1 - (deltaY / 300));
-        overlay.style.opacity = opacity;
-      }
-    }, { passive: true });
-
-    // Handle drag end
-    document.addEventListener('touchend', () => {
-      if (!isDragging) return;
-      
-      isDragging = false;
-      sheet.style.transition = 'transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
-      overlay.style.transition = 'all 0.35s ease';
-      
-      const deltaY = currentY - startY;
-      
-      if (deltaY > 100) {
-        closeSheet();
-      } else {
-        sheet.style.transform = 'translateY(0)';
-        overlay.style.opacity = '1';
-      }
-    });
-
-    // Overlay click
-    overlay.addEventListener('click', closeSheet);
-
-    function openSheet() {
-      isOpen = true;
-      sheet.classList.add('open');
-      overlay.classList.add('show');
-      document.body.style.overflow = 'hidden';
-    }
-
-    function closeSheet() {
-      isOpen = false;
-      sheet.classList.remove('open');
-      overlay.classList.remove('show');
-      document.body.style.overflow = '';
-      sheet.style.transform = '';
-      overlay.style.opacity = '';
-    }
-
-    function updateContent(tab) {
-      const contents = {
-        home: {
-          title: '🏠 Home',
-          desc: 'Welcome to your personalized dashboard',
-          body: '<div class="sheet-body"><p>Discover trending content, your recent activities, and personalized recommendations all in one place.</p></div>'
-        },
-        search: {
-          title: '🔍 Search',
-          desc: 'Find what you\'re looking for',
-          body: '<div class="sheet-body"><input type="text" placeholder="Search anything..."></div>'
-        },
-        plus: {
-          title: '➕ Map Styles',
-          desc: 'Choose a map style',
-          body: `
-            <div class="sheet-body">
-              <button class="style-button" onclick="window.changeMapStyle(0)">OpenCycleMap</button>
-              <button class="style-button" onclick="window.changeMapStyle(1)">Transport</button>
-              <button class="style-button" onclick="window.changeMapStyle(2)">Landscape</button>
-              <button class="style-button" onclick="window.changeMapStyle(3)">Outdoors</button>
-              <button class="style-button" onclick="window.changeMapStyle(4)">Transport Dark</button>
-              <button class="style-button" onclick="window.changeMapStyle(5)">Spinal Map</button>
-              <button class="style-button" onclick="window.changeMapStyle(6)">Pioneer</button>
-              <button class="style-button" onclick="window.changeMapStyle(7)">Mobile Atlas</button>
-              <button class="style-button" onclick="window.changeMapStyle(8)">Neighbourhood</button>
-              <button class="style-button" onclick="window.changeMapStyle(9)">Atlas</button>
-            </div>
-          `
-        },
-        user: {
-          title: '👤 Profile',
-          desc: 'Manage your account',
-          body: '<div class="sheet-body"><p>View your profile, update settings, manage preferences, and customize your experience.</p></div>'
+      // Handle drag move
+      document.addEventListener('touchmove', (e) => {
+        if (!isDragging) return;
+        
+        currentY = e.touches[0].clientY;
+        const deltaY = currentY - startY;
+        
+        if (deltaY > 0) {
+          sheet.style.transform = `translateY(${deltaY}px)`;
+          const opacity = Math.max(0, 1 - (deltaY / 300));
+          overlay.style.opacity = opacity;
         }
-      };
+      }, { passive: true });
 
-      const content = contents[tab];
-      
-      // Reset animations
-      sheetContent.innerHTML = `
-        <h2 class="sheet-title">${content.title}</h2>
-        <p class="sheet-description">${content.desc}</p>
-        ${content.body}
-      `;
-    }
+      // Handle drag end
+      document.addEventListener('touchend', () => {
+        if (!isDragging) return;
+        
+        isDragging = false;
+        sheet.style.transition = 'transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+        overlay.style.transition = 'all 0.35s ease';
+        
+        const deltaY = currentY - startY;
+        
+        if (deltaY > 100) {
+          closeSheet();
+        } else {
+          sheet.style.transform = 'translateY(0)';
+          overlay.style.opacity = '1';
+        }
+      });
 
-    // Prevent sheet content scroll from closing
-    sheetContent.addEventListener('touchstart', (e) => {
-      if (sheetContent.scrollTop === 0) {
-        sheetContent.scrollTop = 1;
+      // Overlay click
+      overlay.addEventListener('click', closeSheet);
+
+      function openSheet() {
+        isOpen = true;
+        sheet.classList.add('open');
+        overlay.classList.add('show');
+        document.body.style.overflow = 'hidden';
       }
-    }, { passive: true });
 
-    // Prevent body scroll when sheet is open
-    sheet.addEventListener('touchmove', (e) => {
-      e.stopPropagation();
-    }, { passive: true });
+      function closeSheet() {
+        isOpen = false;
+        sheet.classList.remove('open');
+        overlay.classList.remove('show');
+        document.body.style.overflow = '';
+        sheet.style.transform = '';
+        overlay.style.opacity = '';
+      }
+
+      function updateContent(tab) {
+        const contents = {
+          home: {
+            title: '🏠 Home',
+            desc: 'Welcome to your personalized dashboard',
+            body: '<div class="sheet-body"><p>Discover trending content, your recent activities, and personalized recommendations all in one place.</p></div>'
+          },
+          search: {
+            title: '🔍 Search',
+            desc: 'Find what you\'re looking for',
+            body: '<div class="sheet-body"><input type="text" placeholder="Search anything..."></div>'
+          },
+          plus: {
+            title: '➕ Map Styles',
+            desc: 'Choose a map style',
+            body: `
+              <div class="sheet-body">
+                <button class="style-button" onclick="window.changeMapStyle(0)">Default</button>
+                <button class="style-button" onclick="window.changeMapStyle(1)">Dark</button>
+                <button class="style-button" onclick="window.changeMapStyle(2)">Light</button>
+                <button class="style-button" onclick="window.changeMapStyle(3)">Smooth</button>
+              </div>
+            `
+          },
+          user: {
+            title: '👤 Profile',
+            desc: 'Manage your account',
+            body: '<div class="sheet-body"><p>View your profile, update settings, manage preferences, and customize your experience.</p></div>'
+          }
+        };
+
+        const content = contents[tab];
+        
+        // Reset animations
+        sheetContent.innerHTML = `
+          <h2 class="sheet-title">${content.title}</h2>
+          <p class="sheet-description">${content.desc}</p>
+          ${content.body}
+        `;
+      }
+
+      // Prevent sheet content scroll from closing
+      sheetContent.addEventListener('touchstart', (e) => {
+        if (sheetContent.scrollTop === 0) {
+          sheetContent.scrollTop = 1;
+        }
+      }, { passive: true });
+
+      // Prevent body scroll when sheet is open
+      sheet.addEventListener('touchmove', (e) => {
+        e.stopPropagation();
+      }, { passive: true });
+    });
   </script>
 </body>
 </html>
