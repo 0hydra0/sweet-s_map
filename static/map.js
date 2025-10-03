@@ -31,7 +31,7 @@ try {
   // Free tile providers (no API key)
   const styles = [
     { name: "Default", url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" },
-    { name: "Dark", url: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png" },
+    { name: "Dark", url: "https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png" }, // Switched to OSM Hot for reliability
     { name: "Light", url: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png" },
     { name: "Topo", url: "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png" },
     { name: "Street", url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}" },
@@ -44,7 +44,22 @@ try {
     maxZoom: 19,
     noWrap: true, // No tile wrapping
     updateWhenIdle: false, // Load tiles during pan
-    keepBuffer: 2 // Preload tiles
+    keepBuffer: 2, // Preload tiles
+    tileErrorHandling: function (tile, error) {
+      console.error('Tile load error:', tile.src, error);
+      // Fallback to Default style if tile fails
+      if (styles[savedStyleIndex].name !== 'Default') {
+        map.removeLayer(currentLayer);
+        currentLayer = L.tileLayer(styles[0].url, {
+          maxZoom: 19,
+          noWrap: true,
+          updateWhenIdle: false,
+          keepBuffer: 2
+        }).addTo(map);
+        localStorage.setItem('mapStyleIndex', 0);
+        console.log('Switched to Default layer due to tile error');
+      }
+    }
   }).addTo(map);
 
   console.log('Initial layer added:', styles[savedStyleIndex].name);
@@ -71,7 +86,7 @@ try {
   // Show user location with smooth updates
   map.locate({ setView: false, maxZoom: 19, watch: true, enableHighAccuracy: true, timeout: 5000 });
   map.on('locationfound', (e) => {
-    console.log('User location found:', e.latlng);
+    console.log('User location found:', JSON.stringify(e.latlng));
     // Cache location
     localStorage.setItem('userLocation', JSON.stringify([e.latlng.lat, e.latlng.lng]));
     // Remove old marker if it exists
@@ -104,7 +119,22 @@ try {
         maxZoom: 19,
         noWrap: true,
         updateWhenIdle: false,
-        keepBuffer: 2
+        keepBuffer: 2,
+        tileErrorHandling: function (tile, error) {
+          console.error('Tile load error:', tile.src, error);
+          // Fallback to Default style
+          if (styles[index].name !== 'Default') {
+            map.removeLayer(currentLayer);
+            currentLayer = L.tileLayer(styles[0].url, {
+              maxZoom: 19,
+              noWrap: true,
+              updateWhenIdle: false,
+              keepBuffer: 2
+            }).addTo(map);
+            localStorage.setItem('mapStyleIndex', 0);
+            console.log('Switched to Default layer due to tile error');
+          }
+        }
       }).addTo(map);
       console.log('New layer added:', styles[index].name);
       localStorage.setItem('mapStyleIndex', index);
@@ -127,7 +157,7 @@ try {
         if (data && data.length > 0) {
           const { lat, lon } = data[0];
           console.log('Found location:', lat, lon);
-          map.setView([lat, lon], 14); // Zoom closer for small places
+          map.setView([lat, lon], 14);
         } else {
           console.warn('Location not found:', query);
           alert('Location not found. Try another search term.');
