@@ -82,7 +82,6 @@
     }
 
     .user-location {
-      filter: blur(2px);
       position: relative;
     }
 
@@ -109,7 +108,6 @@
     .user-name-marker {
       font-family: monospace;
       font-size: 14px;
-      color: #1a1a2e;
       background: rgba(255, 255, 255, 0.9);
       padding: 4px 8px;
       border-radius: 8px;
@@ -178,7 +176,7 @@
       transition: transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
       display: flex;
       flex-direction: column;
-      max-height: 70vh;
+      max-height: calc(100vh - 70px); /* Adjusted for nav bar */
       will-change: transform;
     }
 
@@ -213,7 +211,7 @@
     }
 
     .sheet-content {
-      padding: 0 24px 90px 24px;
+      padding: 0 24px 24px 24px;
       overflow-y: auto;
       flex: 1;
       -webkit-overflow-scrolling: touch;
@@ -301,13 +299,32 @@
       background: linear-gradient(135deg, #764ba2, #f093fb);
     }
 
+    .profile-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 0;
+    }
+
     .user-name {
-      position: absolute;
-      top: 10px;
-      left: 10px;
       font-family: monospace;
       font-size: 18px;
       color: #1a1a2e;
+    }
+
+    .change-name-btn {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: #fff;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .change-name-btn:hover {
+      background: linear-gradient(135deg, #764ba2, #f093fb);
     }
 
     .overlay {
@@ -323,6 +340,61 @@
     .overlay.show {
       opacity: 1;
       visibility: visible;
+    }
+
+    .change-name-popup {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 20px;
+      padding: 20px;
+      text-align: center;
+      box-shadow: 0 5px 25px rgba(0, 0, 0, 0.3);
+      width: 300px;
+      z-index: 1000;
+      display: none;
+    }
+
+    .change-name-popup h2 {
+      font-size: 22px;
+      color: #1a1a2e;
+      margin-bottom: 14px;
+    }
+
+    .change-name-popup input {
+      width: 100%;
+      padding: 12px 14px;
+      border: 2px solid #e0e0e0;
+      border-radius: 10px;
+      background: #f8f8f8;
+      color: #333;
+      font-size: 15px;
+      outline: none;
+      margin-bottom: 14px;
+      transition: all 0.3s ease;
+    }
+
+    .change-name-popup input:focus {
+      border-color: #667eea;
+      background: #fff;
+    }
+
+    .change-name-popup button {
+      width: 100%;
+      padding: 12px 14px;
+      border: none;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: #fff;
+      font-size: 15px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .change-name-popup button:hover {
+      background: linear-gradient(135deg, #764ba2, #f093fb);
     }
 
     @media (min-width: 768px) {
@@ -382,6 +454,12 @@
     </button>
   </nav>
 
+  <div class="change-name-popup" id="changeNamePopup">
+    <h2>Change Your Name</h2>
+    <input type="text" id="newUserName" placeholder="Enter new name" required>
+    <button onclick="saveNewName()">Save</button>
+  </div>
+
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="/static/map.js"></script>
   <script>
@@ -403,6 +481,7 @@
       const overlay = document.getElementById('overlay');
       const navItems = document.querySelectorAll('.nav-item');
       const sheetContent = document.getElementById('sheetContent');
+      const changeNamePopup = document.getElementById('changeNamePopup');
 
       let startY = 0;
       let currentY = 0;
@@ -457,7 +536,10 @@
         }
       });
 
-      overlay.addEventListener('click', closeSheet);
+      overlay.addEventListener('click', () => {
+        closeSheet();
+        closeChangeNamePopup();
+      });
 
       function openSheet() {
         isOpen = true;
@@ -476,6 +558,33 @@
         const suggestionsDiv = document.getElementById('suggestions');
         if (suggestionsDiv) suggestionsDiv.innerHTML = '';
       }
+
+      function openChangeNamePopup() {
+        changeNamePopup.style.display = 'block';
+        overlay.classList.add('show');
+        document.getElementById('newUserName').focus();
+      }
+
+      function closeChangeNamePopup() {
+        changeNamePopup.style.display = 'none';
+        overlay.classList.remove('show');
+      }
+
+      window.saveNewName = function() {
+        const newName = document.getElementById('newUserName').value.trim();
+        if (!newName) {
+          alert('Please enter a new name.');
+          return;
+        }
+        localStorage.setItem('userName', newName);
+        closeChangeNamePopup();
+        updateContent('user'); // Refresh Profile tab
+        window.updateUserMarker(newName); // Update map marker
+      };
+
+      document.getElementById('newUserName')?.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') saveNewName();
+      });
 
       function updateContent(tab) {
         const userName = localStorage.getItem('userName') || 'User';
@@ -513,7 +622,14 @@
           user: {
             title: '👤 Profile',
             desc: 'Your account',
-            body: `<div class="sheet-body"><div class="user-name">${userName}</div></div>`
+            body: `
+              <div class="sheet-body">
+                <div class="profile-container">
+                  <div class="user-name">${userName}</div>
+                  <button class="change-name-btn" onclick="openChangeNamePopup()">Change</button>
+                </div>
+              </div>
+            `
           }
         };
 

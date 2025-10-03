@@ -7,23 +7,25 @@ try {
   console.log('map.js loaded successfully');
 
   let map = null;
+  let userMarker = null;
+  let currentLayer = null;
+
   const mapElement = L.DomUtil.get('map');
   if (mapElement && mapElement._leaflet_id) {
     console.log('Map already initialized, reusing existing map');
     map = L.Map.get(mapElement);
   } else {
-    // Restore last map state or default to world view
     const savedState = localStorage.getItem('mapState');
     const initialView = savedState ? JSON.parse(savedState) : { center: [20, 0], zoom: 3 };
     map = L.map('map', {
       zoomControl: false,
       attributionControl: true,
       minZoom: 3,
-      maxZoom: 18, // Limit to avoid black tiles
+      maxZoom: 18,
       worldCopyJump: false,
       maxBounds: [[-90, -180], [90, 180]],
       maxBoundsViscosity: 1.0,
-      inertia: true, // Smooth iPhone-like panning
+      inertia: true,
       inertiaDeceleration: 3000,
       zoomAnimation: true,
       fadeAnimation: true,
@@ -32,7 +34,6 @@ try {
     console.log('Map initialized at', initialView.center, 'zoom', initialView.zoom);
   }
 
-  // Save map state on move/zoom
   map.on('moveend zoomend', () => {
     const center = map.getCenter();
     const zoom = map.getZoom();
@@ -44,37 +45,43 @@ try {
     { 
       name: "Default", 
       url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      nameColor: '#1a1a2e' // Dark for light map
     },
     { 
       name: "Dark", 
       url: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors & <a href="https://carto.com/attributions">CARTO</a>'
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors & <a href="https://carto.com/attributions">CARTO</a>',
+      nameColor: '#ffffff' // Light for dark map
     },
     { 
       name: "Light", 
       url: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors & <a href="https://carto.com/attributions">CARTO</a>'
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors & <a href="https://carto.com/attributions">CARTO</a>',
+      nameColor: '#1a1a2e' // Dark for light map
     },
     { 
       name: "Satellite", 
       url: "https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png",
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      nameColor: '#ffffff' // Light for dark map
     },
     { 
       name: "Terrain", 
       url: "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
-      attribution: '&copy; <a href="https://www.opentopomap.org/copyright">OpenTopoMap</a> contributors'
+      attribution: '&copy; <a href="https://www.opentopomap.org/copyright">OpenTopoMap</a> contributors',
+      nameColor: '#1a1a2e' // Dark for light map
     },
     { 
       name: "Streets", 
       url: "https://tile.openstreetmap.de/{z}/{x}/{y}.png",
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      nameColor: '#1a1a2e' // Dark for light map
     }
   ];
 
   const savedStyleIndex = localStorage.getItem('mapStyleIndex') || 0;
-  let currentLayer = L.tileLayer(styles[savedStyleIndex].url, {
+  currentLayer = L.tileLayer(styles[savedStyleIndex].url, {
     maxZoom: 18,
     noWrap: true,
     updateWhenIdle: false,
@@ -93,36 +100,37 @@ try {
         }).addTo(map);
         localStorage.setItem('mapStyleIndex', 0);
         console.log('Switched to Default layer due to tile error');
+        updateUserMarker(localStorage.getItem('userName') || 'User');
       }
     }
   }).addTo(map);
 
   console.log('Initial layer added:', styles[savedStyleIndex].name);
 
-  let userMarker = null;
-  const userName = localStorage.getItem('userName') || 'User';
-
-  // Add user marker with floating username
-  const cachedLocation = localStorage.getItem('userLocation');
-  if (cachedLocation) {
-    const [lat, lng] = JSON.parse(cachedLocation);
-    console.log('Using cached location:', [lat, lng]);
+  function createUserMarker(lat, lng, name, nameColor) {
     const userIcon = L.divIcon({
       className: 'user-location',
       html: `
         <div class="user-location">
-          <div class="user-name-marker">${userName}</div>
-          <div style="width: 16px; height: 16px; background: #800080; border-radius: 50%; border: 2px solid #800080; opacity: 0.8;"></div>
+          <div class="user-name-marker" style="color: ${nameColor}">${name}</div>
+          <div style="width: 12px; height: 12px; background: #800080; border-radius: 50%; border: 2px solid #ffffff; opacity: 1;"></div>
         </div>
       `,
-      iconSize: [16, 16],
-      iconAnchor: [8, 8],
+      iconSize: [12, 12],
+      iconAnchor: [6, 6],
       popupAnchor: [0, -40]
     });
-    userMarker = L.marker([lat, lng], { icon: userIcon }).addTo(map).bindPopup('Your location');
+    return L.marker([lat, lng], { icon: userIcon }).bindPopup('Your location');
   }
 
-  // Track user location but don't pan to it
+  const userName = localStorage.getItem('userName') || 'User';
+  const cachedLocation = localStorage.getItem('userLocation');
+  if (cachedLocation) {
+    const [lat, lng] = JSON.parse(cachedLocation);
+    console.log('Using cached location:', [lat, lng]);
+    userMarker = createUserMarker(lat, lng, userName, styles[savedStyleIndex].nameColor).addTo(map);
+  }
+
   map.locate({ setView: false, maxZoom: 18, watch: true, enableHighAccuracy: true, timeout: 5000 });
   map.on('locationfound', (e) => {
     console.log('User location found:', JSON.stringify(e.latlng));
@@ -130,19 +138,7 @@ try {
     if (userMarker) {
       map.removeLayer(userMarker);
     }
-    const userIcon = L.divIcon({
-      className: 'user-location',
-      html: `
-        <div class="user-location">
-          <div class="user-name-marker">${userName}</div>
-          <div style="width: 16px; height: 16px; background: #800080; border-radius: 50%; border: 2px solid #800080; opacity: 0.8;"></div>
-        </div>
-      `,
-      iconSize: [16, 16],
-      iconAnchor: [8, 8],
-      popupAnchor: [0, -40]
-    });
-    userMarker = L.marker(e.latlng, { icon: userIcon }).addTo(map).bindPopup('Your location');
+    userMarker = createUserMarker(e.latlng.lat, e.latlng.lng, userName, styles[savedStyleIndex].nameColor).addTo(map);
   });
   map.on('locationerror', (e) => {
     console.error('Location access denied:', e.message);
@@ -171,15 +167,30 @@ try {
             }).addTo(map);
             localStorage.setItem('mapStyleIndex', 0);
             console.log('Switched to Default layer due to tile error');
+            updateUserMarker(localStorage.getItem('userName') || 'User');
           }
         }
       }).addTo(map);
       console.log('New layer added:', styles[index].name);
       localStorage.setItem('mapStyleIndex', index);
+      if (userMarker) {
+        map.removeLayer(userMarker);
+        const [lat, lng] = JSON.parse(localStorage.getItem('userLocation') || '[20, 0]');
+        userMarker = createUserMarker(lat, lng, userName, styles[index].nameColor).addTo(map);
+      }
     } catch (e) {
       console.error('Error changing map style:', e);
       alert('Failed to change map style. Try another option.');
     }
+  };
+
+  window.updateUserMarker = function(name) {
+    if (userMarker) {
+      map.removeLayer(userMarker);
+    }
+    const [lat, lng] = JSON.parse(localStorage.getItem('userLocation') || '[20, 0]');
+    const styleIndex = localStorage.getItem('mapStyleIndex') || 0;
+    userMarker = createUserMarker(lat, lng, name, styles[styleIndex].nameColor).addTo(map);
   };
 
   window.searchLocation = function(query) {
