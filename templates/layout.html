@@ -82,12 +82,13 @@
     }
 
     .user-location {
-      animation: pulse 2s infinite ease-in-out;
+      filter: blur(2px);
+      animation: pulse 3s infinite ease-in-out; /* Slower pulse for battery */
     }
 
     @keyframes pulse {
       0% { transform: scale(1); opacity: 0.8; }
-      50% { transform: scale(1.3); opacity: 1; }
+      50% { transform: scale(1.2); opacity: 1; }
       100% { transform: scale(1); opacity: 0.8; }
     }
 
@@ -124,7 +125,7 @@
 
     .nav-item i {
       font-size: 22px;
-      color: rgba(0, 0, 0, 0.5);
+      color: #000; /* Black icons */
       transition: all 0.3s ease;
     }
 
@@ -134,7 +135,7 @@
     }
 
     .nav-item.active i {
-      color: #fff;
+      color: #000; /* Black icons even when active */
     }
 
     /* Bottom Sheet */
@@ -454,8 +455,13 @@
           },
           search: {
             title: '🔍 Search',
-            desc: 'Find what you\'re looking for',
-            body: '<div class="sheet-body"><input type="text" placeholder="Search anything..."></div>'
+            desc: 'Find a place on the map',
+            body: `
+              <div class="sheet-body">
+                <input type="text" id="searchInput" placeholder="Search for a place (e.g., New York)">
+                <button class="style-button" onclick="window.searchLocation(document.getElementById('searchInput').value)">Search</button>
+              </div>
+            `
           },
           plus: {
             title: '➕ Map Styles',
