@@ -7,7 +7,7 @@ def index():
     return render_template('pop.html')
 
 @app.route('/map')
-def map():
+def map_view():
     return render_template('layout.html')
 
 if __name__ == '__main__':

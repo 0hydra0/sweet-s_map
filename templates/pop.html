@@ -25,7 +25,6 @@
       overflow: hidden;
     }
 
-    /* Blur overlay */
     .overlay {
       position: fixed;
       inset: 0;
@@ -42,7 +41,7 @@
       padding: 20px;
       text-align: center;
       box-shadow: 0 5px 25px rgba(0, 0, 0, 0.3);
-      width: 300px; /* smaller box */
+      width: 300px;
     }
 
     .popup h2 {
@@ -156,7 +155,6 @@
   <div class="loader" id="loader" style="display: none;"></div>
 
   <script>
-    // Check if name exists in localStorage to skip popup
     if (localStorage.getItem('userName')) {
       window.location.href = '/map';
     } else {
@@ -180,7 +178,6 @@
       }, 3000);
     }
 
-    // Allow Enter key to submit
     document.getElementById('userName').addEventListener('keypress', (e) => {
       if (e.key === 'Enter') submitName();
     });

@@ -82,7 +82,7 @@
     }
 
     .user-location {
-      filter: blur(2px); /* Static blur outline */
+      filter: blur(2px);
       position: relative;
     }
 
@@ -106,7 +106,6 @@
       100% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; }
     }
 
-    /* Bottom Navigation Bar */
     .nav-bar {
       position: fixed;
       bottom: 0;
@@ -139,7 +138,7 @@
 
     .nav-item i {
       font-size: 22px;
-      color: #000; /* Black icons */
+      color: #000;
       transition: all 0.3s ease;
     }
 
@@ -149,10 +148,9 @@
     }
 
     .nav-item.active i {
-      color: #000; /* Black icons even when active */
+      color: #000;
     }
 
-    /* Bottom Sheet */
     .bottom-sheet {
       position: fixed;
       bottom: 0;
@@ -174,7 +172,6 @@
       transform: translateY(0);
     }
 
-    /* Drag Handle */
     .sheet-handle {
       width: 100%;
       padding: 16px;
@@ -201,7 +198,6 @@
       background: rgba(0, 0, 0, 0.3);
     }
 
-    /* Sheet Content */
     .sheet-content {
       padding: 0 24px 90px 24px;
       overflow-y: auto;
@@ -300,7 +296,6 @@
       color: #1a1a2e;
     }
 
-    /* Overlay */
     .overlay {
       position: fixed;
       inset: 0;
@@ -316,7 +311,6 @@
       visibility: visible;
     }
 
-    /* Responsive */
     @media (min-width: 768px) {
       .bottom-sheet {
         left: 50%;
@@ -337,7 +331,6 @@
       }
     }
 
-    /* Prevent scroll bounce */
     .sheet-content {
       overscroll-behavior: contain;
     }
@@ -378,7 +371,6 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="/static/map.js"></script>
   <script>
-    // Fallback for changeMapStyle and search functions
     window.changeMapStyle = window.changeMapStyle || function(index) {
       console.warn('changeMapStyle not loaded, index:', index);
     };
@@ -389,7 +381,6 @@
       console.warn('getSearchSuggestions not loaded, query:', query);
     };
 
-    // Wait for DOM and scripts to load
     document.addEventListener('DOMContentLoaded', () => {
       console.log('DOM loaded, initializing UI');
 
@@ -404,7 +395,6 @@
       let isDragging = false;
       let isOpen = false;
 
-      // Handle navigation items
       navItems.forEach(item => {
         item.addEventListener('click', () => {
           navItems.forEach(i => i.classList.remove('active'));
@@ -416,7 +406,6 @@
         });
       });
 
-      // Handle drag start
       handle.addEventListener('touchstart', (e) => {
         if (!isOpen) return;
         isDragging = true;
@@ -424,7 +413,6 @@
         sheet.style.transition = 'none';
       }, { passive: true });
 
-      // Handle drag move
       document.addEventListener('touchmove', (e) => {
         if (!isDragging) return;
         
@@ -438,7 +426,6 @@
         }
       }, { passive: true });
 
-      // Handle drag end
       document.addEventListener('touchend', () => {
         if (!isDragging) return;
         
@@ -456,7 +443,6 @@
         }
       });
 
-      // Overlay click
       overlay.addEventListener('click', closeSheet);
 
       function openSheet() {
@@ -473,7 +459,6 @@
         document.body.style.overflow = '';
         sheet.style.transform = '';
         overlay.style.opacity = '';
-        // Clear suggestions when closing
         const suggestionsDiv = document.getElementById('suggestions');
         if (suggestionsDiv) suggestionsDiv.innerHTML = '';
       }
@@ -520,7 +505,6 @@
 
         const content = contents[tab];
         
-        // Reset animations
         sheetContent.innerHTML = `
           <h2 class="sheet-title">${content.title}</h2>
           <p class="sheet-description">${content.desc}</p>
@@ -528,14 +512,12 @@
         `;
       }
 
-      // Prevent sheet content scroll from closing
       sheetContent.addEventListener('touchstart', (e) => {
         if (sheetContent.scrollTop === 0) {
           sheetContent.scrollTop = 1;
         }
       }, { passive: true });
 
-      // Prevent body scroll when sheet is open
       sheet.addEventListener('touchmove', (e) => {
         e.stopPropagation();
       }, { passive: true });
