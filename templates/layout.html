@@ -353,11 +353,17 @@
   </nav>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="/static/map.js" defer></script>
+  <script src="/static/map.js"></script>
   <script>
-    // Fallback for changeMapStyle
+    // Fallback for changeMapStyle and searchLocation
     window.changeMapStyle = window.changeMapStyle || function(index) {
       console.warn('changeMapStyle not loaded, index:', index);
+    };
+    window.searchLocation = window.searchLocation || function(query) {
+      console.warn('searchLocation not loaded, query:', query);
+    };
+    window.getSearchSuggestions = window.getSearchSuggestions || function(query) {
+      console.warn('getSearchSuggestions not loaded, query:', query);
     };
 
     // Wait for DOM and scripts to load
@@ -444,6 +450,9 @@
         document.body.style.overflow = '';
         sheet.style.transform = '';
         overlay.style.opacity = '';
+        // Clear suggestions when closing
+        const suggestionsDiv = document.getElementById('suggestions');
+        if (suggestionsDiv) suggestionsDiv.innerHTML = '';
       }
 
       function updateContent(tab) {
@@ -458,8 +467,9 @@
             desc: 'Find a place on the map',
             body: `
               <div class="sheet-body">
-                <input type="text" id="searchInput" placeholder="Search for a place (e.g., New York)">
+                <input type="text" id="searchInput" placeholder="Search for a place (e.g., New York)" oninput="window.getSearchSuggestions(this.value)">
                 <button class="style-button" onclick="window.searchLocation(document.getElementById('searchInput').value)">Search</button>
+                <div id="suggestions"></div>
               </div>
             `
           },
