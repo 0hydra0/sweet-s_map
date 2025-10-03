@@ -1,10 +1,12 @@
-from flask import Flask, render_template
-from dotenv import load_dotenv
-import os
+from flask import Flask, render_template, redirect, url_for
 
 app = Flask(__name__)
-load_dotenv()
 
 @app.route('/')
 def index():
-    return render_template('layout.html', THUNDERFOREST_API_KEY=os.getenv('THUNDERFOREST_API_KEY') or 'missing-api-key')
+    # Redirect to pop.html if no userName in localStorage (handled client-side)
+    return render_template('pop.html')
+
+@app.route('/map')
+def map():
+    return render_template('layout.html')

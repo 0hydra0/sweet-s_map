@@ -1,10 +1,9 @@
 {
-    "version": 2,
-    "builds": [
-        { "src": "app.py", "use": "@vercel/python" }
-    ],
-    "routes": [
-        { "src": "/favicon.ico", "dest": "/static/favicon.ico" },
-        { "src": "/(.*)", "dest": "app.py" }
-    ]
+  "rewrites": [
+    { "source": "/static/(.*)", "destination": "/static/$1" },
+    { "source": "/map", "destination": "/app.py:map" },
+    { "source": "/(.*)", "destination": "/app.py" }
+  ],
+  "cleanUrls": true,
+  "trailingSlash": false
 }

@@ -83,6 +83,27 @@
 
     .user-location {
       filter: blur(2px); /* Static blur outline */
+      position: relative;
+    }
+
+    .user-location::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 16px;
+      height: 16px;
+      background: transparent;
+      border: 2px solid #800080;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      animation: wave 2s infinite ease-out;
+      z-index: -1;
+    }
+
+    @keyframes wave {
+      0% { transform: translate(-50%, -50%) scale(1); opacity: 0.5; }
+      100% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; }
     }
 
     /* Bottom Navigation Bar */
@@ -270,6 +291,15 @@
       background: linear-gradient(135deg, #764ba2, #f093fb);
     }
 
+    .user-name {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      font-family: monospace;
+      font-size: 18px;
+      color: #1a1a2e;
+    }
+
     /* Overlay */
     .overlay {
       position: fixed;
@@ -449,6 +479,7 @@
       }
 
       function updateContent(tab) {
+        const userName = localStorage.getItem('userName') || 'User';
         const contents = {
           home: {
             title: '💬 Chat',
@@ -483,7 +514,7 @@
           user: {
             title: '👤 Profile',
             desc: 'Manage your account',
-            body: '<div class="sheet-body"><p>View your profile, update settings, manage preferences, and customize your experience.</p></div>'
+            body: `<div class="sheet-body"><div class="user-name">${userName}</div><p>View your profile, update settings, manage preferences, and customize your experience.</p></div>`
           }
         };
 

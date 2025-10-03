@@ -19,13 +19,13 @@ try {
     map = L.map('map', {
       zoomControl: false, // No zoom controls
       attributionControl: false, // No attribution
-      minZoom: 2, // Prevent over-zooming out
-      maxZoom: 17, // Prevent over-zooming in
+      minZoom: 3, // Allow slight zoom out
+      maxZoom: 19, // Allow closer zoom
       worldCopyJump: false, // No infinite scrolling
       maxBounds: [[-90, -180], [90, 180]], // Constrain to one world
       maxBoundsViscosity: 1.0 // Smooth boundary stop
-    }).setView([20, 0], 2);
-    console.log('Map initialized at [20, 0], zoom 2');
+    }).setView([20, 0], 3);
+    console.log('Map initialized at [20, 0], zoom 3');
   }
 
   // Free tile providers (no API key)
@@ -41,7 +41,7 @@ try {
   // Load saved map style from localStorage or default to 0
   const savedStyleIndex = localStorage.getItem('mapStyleIndex') || 0;
   let currentLayer = L.tileLayer(styles[savedStyleIndex].url, {
-    maxZoom: 17,
+    maxZoom: 19,
     noWrap: true, // No tile wrapping
     updateWhenIdle: false, // Load tiles during pan
     keepBuffer: 2 // Preload tiles
@@ -52,15 +52,33 @@ try {
   // Track user location marker
   let userMarker = null;
 
-  // Show user location as static purple dot with blur outline
-  map.locate({ setView: false, maxZoom: 17, watch: true, enableHighAccuracy: true, timeout: 10000 });
+  // Load cached location if available
+  const cachedLocation = localStorage.getItem('userLocation');
+  if (cachedLocation) {
+    const [lat, lng] = JSON.parse(cachedLocation);
+    console.log('Using cached location:', [lat, lng]);
+    userMarker = L.circleMarker([lat, lng], {
+      radius: 8,
+      fillColor: '#800080', // Purple
+      color: '#800080',
+      weight: 2,
+      opacity: 1,
+      fillOpacity: 0.8,
+      className: 'user-location' // For blur and waves
+    }).addTo(map).bindPopup('Your location');
+  }
+
+  // Show user location with smooth updates
+  map.locate({ setView: false, maxZoom: 19, watch: true, enableHighAccuracy: true, timeout: 5000 });
   map.on('locationfound', (e) => {
     console.log('User location found:', e.latlng);
+    // Cache location
+    localStorage.setItem('userLocation', JSON.stringify([e.latlng.lat, e.latlng.lng]));
     // Remove old marker if it exists
     if (userMarker) {
       map.removeLayer(userMarker);
     }
-    // Add new static purple dot
+    // Add new purple dot with smooth transition
     userMarker = L.circleMarker(e.latlng, {
       radius: 8,
       fillColor: '#800080', // Purple
@@ -68,8 +86,10 @@ try {
       weight: 2,
       opacity: 1,
       fillOpacity: 0.8,
-      className: 'user-location' // For blur
+      className: 'user-location' // For blur and waves
     }).addTo(map).bindPopup('Your location');
+    // Smoothly pan to new location
+    map.panTo(e.latlng, { animate: true, duration: 0.5 });
   });
   map.on('locationerror', (e) => {
     console.error('Location access denied:', e.message);
@@ -81,7 +101,7 @@ try {
     try {
       map.removeLayer(currentLayer);
       currentLayer = L.tileLayer(styles[index].url, {
-        maxZoom: 17,
+        maxZoom: 19,
         noWrap: true,
         updateWhenIdle: false,
         keepBuffer: 2
@@ -101,13 +121,13 @@ try {
       return;
     }
     console.log('Searching for:', query);
-    fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1`)
+    fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1&addressdetails=1`)
       .then(response => response.json())
       .then(data => {
         if (data && data.length > 0) {
           const { lat, lon } = data[0];
           console.log('Found location:', lat, lon);
-          map.setView([lat, lon], 12);
+          map.setView([lat, lon], 14); // Zoom closer for small places
         } else {
           console.warn('Location not found:', query);
           alert('Location not found. Try another search term.');
@@ -125,7 +145,7 @@ try {
       document.getElementById('suggestions').innerHTML = '';
       return;
     }
-    fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5`)
+    fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5&addressdetails=1`)
       .then(response => response.json())
       .then(data => {
         const suggestionsDiv = document.getElementById('suggestions');
