@@ -8,12 +8,12 @@ try {
   // Log script load
   console.log('map.js loaded successfully');
 
-  // Initialize the map with locking
+  // Initialize the map
   const map = L.map('map', {
     zoomControl: false, // No zoom controls
     attributionControl: false, // No attribution
     minZoom: 2, // Prevent over-zooming out
-    maxZoom: 18, // Prevent over-zooming in
+    maxZoom: 17, // Prevent over-zooming in
     worldCopyJump: false, // No infinite scrolling
     maxBounds: [[-90, -180], [90, 180]], // Constrain to one world
     maxBoundsViscosity: 1.0 // Smooth boundary stop
@@ -33,22 +33,49 @@ try {
 
   // Initialize map with Default style
   let currentLayer = L.tileLayer(styles[0].url, {
-    maxZoom: 18,
+    maxZoom: 17,
     noWrap: true, // No tile wrapping
     updateWhenIdle: false, // Load tiles during pan
-    keepBuffer: 2 // Preload tiles for smooth panning
+    keepBuffer: 4, // Preload more tiles
+    tileSize: 512, // Higher resolution
+    zoomOffset: -1
   }).addTo(map);
 
   console.log('Initial layer added:', styles[0].name);
 
-  // Show user location
-  map.locate({ setView: true, maxZoom: 15 });
+  // Show user location as sky-blue wavy dot
+  map.locate({ setView: false, maxZoom: 17 });
   map.on('locationfound', (e) => {
     console.log('User location found:', e.latlng);
-    L.marker(e.latlng).addTo(map).bindPopup('You are here!').openPopup();
+    L.circleMarker(e.latlng, {
+      radius: 8,
+      fillColor: '#87ceeb', // Sky blue
+      color: '#87ceeb',
+      weight: 2,
+      opacity: 1,
+      fillOpacity: 0.8,
+      className: 'user-location' // For pulse animation
+    }).addTo(map).bindPopup('Your location');
   });
   map.on('locationerror', (e) => {
     console.error('Location access denied:', e.message);
+  });
+
+  // Simulate other users' locations (random for demo)
+  const otherUsers = [
+    { lat: 40.7128, lng: -74.0060 }, // New York
+    { lat: 51.5074, lng: -0.1278 }, // London
+    { lat: 35.6762, lng: 139.6503 } // Tokyo
+  ];
+  otherUsers.forEach(user => {
+    L.circleMarker([user.lat, user.lng], {
+      radius: 6,
+      fillColor: '#ff6347', // Tomato red for others
+      color: '#ff6347',
+      weight: 2,
+      opacity: 1,
+      fillOpacity: 0.8
+    }).addTo(map).bindPopup('Another user');
   });
 
   // Function to change map style
@@ -57,10 +84,12 @@ try {
     try {
       map.removeLayer(currentLayer);
       currentLayer = L.tileLayer(styles[index].url, {
-        maxZoom: 18,
+        maxZoom: 17,
         noWrap: true,
         updateWhenIdle: false,
-        keepBuffer: 2
+        keepBuffer: 4,
+        tileSize: 512,
+        zoomOffset: -1
       }).addTo(map);
       console.log('New layer added:', styles[index].name);
     } catch (e) {
