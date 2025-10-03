@@ -5,7 +5,10 @@ const map = L.map('map', {
 }).setView([20, 0], 2);
 
 // Get API key from window (set by Flask in layout.html)
-const apiKey = window.THUNDERFOREST_API_KEY;
+const apiKey = window.THUNDERFOREST_API_KEY || 'missing-api-key';
+
+// Log API key for debugging
+console.log('THUNDERFOREST_API_KEY:', apiKey);
 
 // List of 10 Thunderforest styles
 const styles = [
@@ -21,13 +24,22 @@ const styles = [
   { name: "Atlas", url: `https://tile.thunderforest.com/atlas/{z}/{x}/{y}.png?apikey=${apiKey}` }
 ];
 
-// Initialize map with the first style
-let currentLayer = L.tileLayer(styles[0].url, {
+// Fallback OpenStreetMap layer for testing
+const fallbackLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 22
+});
+
+// Initialize map with the first style or fallback
+let currentLayer = apiKey === 'missing-api-key' ? fallbackLayer : L.tileLayer(styles[0].url, {
   maxZoom: 22
 }).addTo(map);
 
+// Log layer addition for debugging
+console.log('Initial layer added:', styles[0].name || 'OpenStreetMap');
+
 // Function to change map style
 function changeMapStyle(index) {
+  console.log('Changing to style:', styles[index].name);
   map.removeLayer(currentLayer);
   currentLayer = L.tileLayer(styles[index].url, {
     maxZoom: 22
