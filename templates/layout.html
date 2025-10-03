@@ -90,19 +90,19 @@
       position: absolute;
       top: 50%;
       left: 50%;
-      width: 16px;
-      height: 16px;
+      width: 8px;
+      height: 8px;
       background: transparent;
       border: 2px solid #800080;
       border-radius: 50%;
       transform: translate(-50%, -50%);
-      animation: wave 2s infinite ease-out;
+      animation: wave 1.5s infinite ease-out;
       z-index: -1;
     }
 
     @keyframes wave {
-      0% { transform: translate(-50%, -50%) scale(1); opacity: 0.5; }
-      100% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; }
+      0% { transform: translate(-50%, -50%) scale(1); opacity: 0.6; }
+      100% { transform: translate(-50%, -50%) scale(2); opacity: 0; }
     }
 
     .user-name-marker {
@@ -112,7 +112,7 @@
       padding: 4px 8px;
       border-radius: 8px;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-      transform: translate(-50%, -40px);
+      transform: translate(-50%, -36px);
       white-space: nowrap;
       text-align: center;
       will-change: transform;
@@ -165,7 +165,7 @@
 
     .bottom-sheet {
       position: fixed;
-      bottom: 0;
+      bottom: 70px; /* Adjusted to sit above nav bar */
       left: 0;
       width: 100%;
       background: #ffffff;
@@ -176,7 +176,7 @@
       transition: transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
       display: flex;
       flex-direction: column;
-      max-height: calc(100vh - 70px); /* Adjusted for nav bar */
+      max-height: calc(100vh - 70px);
       will-change: transform;
     }
 
@@ -303,7 +303,8 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 16px 0;
+      padding: 20px 0;
+      margin-bottom: 16px;
     }
 
     .user-name {
@@ -352,7 +353,8 @@
       padding: 20px;
       text-align: center;
       box-shadow: 0 5px 25px rgba(0, 0, 0, 0.3);
-      width: 300px;
+      width: 90%;
+      max-width: 300px;
       z-index: 1000;
       display: none;
     }
@@ -415,6 +417,10 @@
         width: 600px;
         border-radius: 24px 24px 0 0;
       }
+
+      .change-name-popup {
+        width: 400px;
+      }
     }
 
     .sheet-content {
@@ -454,11 +460,7 @@
     </button>
   </nav>
 
-  <div class="change-name-popup" id="changeNamePopup">
-    <h2>Change Your Name</h2>
-    <input type="text" id="newUserName" placeholder="Enter new name" required>
-    <button onclick="saveNewName()">Save</button>
-  </div>
+  <div class="change-name-popup" id="changeNamePopup"></div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="/static/map.js"></script>
@@ -472,6 +474,9 @@
     window.getSearchSuggestions = window.getSearchSuggestions || function(query) {
       console.warn('getSearchSuggestions not loaded, query:', query);
     };
+    window.updateUserMarker = window.updateUserMarker || function(name) {
+      console.warn('updateUserMarker not loaded, name:', name);
+    };
 
     document.addEventListener('DOMContentLoaded', () => {
       console.log('DOM loaded, initializing UI');
@@ -482,6 +487,17 @@
       const navItems = document.querySelectorAll('.nav-item');
       const sheetContent = document.getElementById('sheetContent');
       const changeNamePopup = document.getElementById('changeNamePopup');
+
+      // Load change name popup content
+      fetch('/templates/chagename.html')
+        .then(response => response.text())
+        .then(data => {
+          changeNamePopup.innerHTML = data;
+          document.getElementById('newUserName')?.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') saveNewName();
+          });
+        })
+        .catch(error => console.error('Failed to load chagename.html:', error));
 
       let startY = 0;
       let currentY = 0;
@@ -562,7 +578,8 @@
       function openChangeNamePopup() {
         changeNamePopup.style.display = 'block';
         overlay.classList.add('show');
-        document.getElementById('newUserName').focus();
+        const input = document.getElementById('newUserName');
+        if (input) input.focus();
       }
 
       function closeChangeNamePopup() {
@@ -571,20 +588,16 @@
       }
 
       window.saveNewName = function() {
-        const newName = document.getElementById('newUserName').value.trim();
+        const newName = document.getElementById('newUserName')?.value.trim();
         if (!newName) {
           alert('Please enter a new name.');
           return;
         }
         localStorage.setItem('userName', newName);
         closeChangeNamePopup();
-        updateContent('user'); // Refresh Profile tab
-        window.updateUserMarker(newName); // Update map marker
+        updateContent('user');
+        window.updateUserMarker(newName);
       };
-
-      document.getElementById('newUserName')?.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') saveNewName();
-      });
 
       function updateContent(tab) {
         const userName = localStorage.getItem('userName') || 'User';

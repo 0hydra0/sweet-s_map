@@ -46,37 +46,37 @@ try {
       name: "Default", 
       url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-      nameColor: '#1a1a2e' // Dark for light map
+      nameColor: '#1a1a2e'
     },
     { 
       name: "Dark", 
       url: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors & <a href="https://carto.com/attributions">CARTO</a>',
-      nameColor: '#ffffff' // Light for dark map
+      nameColor: '#ffffff'
     },
     { 
       name: "Light", 
       url: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors & <a href="https://carto.com/attributions">CARTO</a>',
-      nameColor: '#1a1a2e' // Dark for light map
+      nameColor: '#1a1a2e'
     },
     { 
       name: "Satellite", 
       url: "https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png",
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-      nameColor: '#ffffff' // Light for dark map
+      nameColor: '#ffffff'
     },
     { 
       name: "Terrain", 
       url: "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
       attribution: '&copy; <a href="https://www.opentopomap.org/copyright">OpenTopoMap</a> contributors',
-      nameColor: '#1a1a2e' // Dark for light map
+      nameColor: '#1a1a2e'
     },
     { 
       name: "Streets", 
       url: "https://tile.openstreetmap.de/{z}/{x}/{y}.png",
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-      nameColor: '#1a1a2e' // Dark for light map
+      nameColor: '#1a1a2e'
     }
   ];
 
@@ -118,7 +118,7 @@ try {
       `,
       iconSize: [12, 12],
       iconAnchor: [6, 6],
-      popupAnchor: [0, -40]
+      popupAnchor: [0, -36]
     });
     return L.marker([lat, lng], { icon: userIcon }).bindPopup('Your location');
   }
@@ -131,12 +131,13 @@ try {
     userMarker = createUserMarker(lat, lng, userName, styles[savedStyleIndex].nameColor).addTo(map);
   }
 
-  map.locate({ setView: false, maxZoom: 18, watch: true, enableHighAccuracy: true, timeout: 5000 });
+  map.locate({ setView: false, maxZoom: 18, watch: true, enableHighAccuracy: true, timeout: 3000, maximumAge: 0 });
   map.on('locationfound', (e) => {
     console.log('User location found:', JSON.stringify(e.latlng));
     localStorage.setItem('userLocation', JSON.stringify([e.latlng.lat, e.latlng.lng]));
     if (userMarker) {
       map.removeLayer(userMarker);
+      userMarker = null; // Ensure no duplicates
     }
     userMarker = createUserMarker(e.latlng.lat, e.latlng.lng, userName, styles[savedStyleIndex].nameColor).addTo(map);
   });
@@ -175,6 +176,7 @@ try {
       localStorage.setItem('mapStyleIndex', index);
       if (userMarker) {
         map.removeLayer(userMarker);
+        userMarker = null;
         const [lat, lng] = JSON.parse(localStorage.getItem('userLocation') || '[20, 0]');
         userMarker = createUserMarker(lat, lng, userName, styles[index].nameColor).addTo(map);
       }
@@ -187,6 +189,7 @@ try {
   window.updateUserMarker = function(name) {
     if (userMarker) {
       map.removeLayer(userMarker);
+      userMarker = null;
     }
     const [lat, lng] = JSON.parse(localStorage.getItem('userLocation') || '[20, 0]');
     const styleIndex = localStorage.getItem('mapStyleIndex') || 0;

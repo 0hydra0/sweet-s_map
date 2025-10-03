@@ -41,7 +41,8 @@
       padding: 20px;
       text-align: center;
       box-shadow: 0 5px 25px rgba(0, 0, 0, 0.3);
-      width: 300px;
+      width: 90%;
+      max-width: 300px;
     }
 
     .popup h2 {
@@ -155,9 +156,11 @@
   <div class="loader" id="loader" style="display: none;"></div>
 
   <script>
-    if (localStorage.getItem('userName')) {
+    const userName = localStorage.getItem('userName');
+    if (userName && userName.trim()) {
       window.location.href = '/map';
     } else {
+      localStorage.removeItem('userName'); // Ensure cleared cache prompts name
       document.getElementById('userName').focus();
     }
 
