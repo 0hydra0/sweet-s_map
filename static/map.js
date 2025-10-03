@@ -12,42 +12,84 @@ try {
     console.log('Map already initialized, reusing existing map');
     map = L.Map.get(mapElement);
   } else {
+    // Restore last map state or default to world view
+    const savedState = localStorage.getItem('mapState');
+    const initialView = savedState ? JSON.parse(savedState) : { center: [20, 0], zoom: 3 };
     map = L.map('map', {
       zoomControl: false,
-      attributionControl: false,
+      attributionControl: true,
       minZoom: 3,
-      maxZoom: 19,
+      maxZoom: 18, // Limit to avoid black tiles
       worldCopyJump: false,
       maxBounds: [[-90, -180], [90, 180]],
-      maxBoundsViscosity: 1.0
-    }).setView([20, 0], 3);
-    console.log('Map initialized at [20, 0], zoom 3');
+      maxBoundsViscosity: 1.0,
+      inertia: true, // Smooth iPhone-like panning
+      inertiaDeceleration: 3000,
+      zoomAnimation: true,
+      fadeAnimation: true,
+      markerZoomAnimation: true
+    }).setView(initialView.center, initialView.zoom);
+    console.log('Map initialized at', initialView.center, 'zoom', initialView.zoom);
   }
 
+  // Save map state on move/zoom
+  map.on('moveend zoomend', () => {
+    const center = map.getCenter();
+    const zoom = map.getZoom();
+    localStorage.setItem('mapState', JSON.stringify({ center: [center.lat, center.lng], zoom }));
+    console.log('Saved map state: center', [center.lat, center.lng], 'zoom', zoom);
+  });
+
   const styles = [
-    { name: "Default", url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" },
-    { name: "Dark", url: "https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png" },
-    { name: "Light", url: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png" },
-    { name: "Topo", url: "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png" },
-    { name: "Street", url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}" },
-    { name: "Voyager", url: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png" }
+    { 
+      name: "Default", 
+      url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    },
+    { 
+      name: "Dark", 
+      url: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors & <a href="https://carto.com/attributions">CARTO</a>'
+    },
+    { 
+      name: "Light", 
+      url: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors & <a href="https://carto.com/attributions">CARTO</a>'
+    },
+    { 
+      name: "Satellite", 
+      url: "https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png",
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    },
+    { 
+      name: "Terrain", 
+      url: "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
+      attribution: '&copy; <a href="https://www.opentopomap.org/copyright">OpenTopoMap</a> contributors'
+    },
+    { 
+      name: "Streets", 
+      url: "https://tile.openstreetmap.de/{z}/{x}/{y}.png",
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }
   ];
 
   const savedStyleIndex = localStorage.getItem('mapStyleIndex') || 0;
   let currentLayer = L.tileLayer(styles[savedStyleIndex].url, {
-    maxZoom: 19,
+    maxZoom: 18,
     noWrap: true,
     updateWhenIdle: false,
     keepBuffer: 2,
+    attribution: styles[savedStyleIndex].attribution,
     tileErrorHandling: function (tile, error) {
       console.error('Tile load error:', tile.src, error);
       if (styles[savedStyleIndex].name !== 'Default') {
         map.removeLayer(currentLayer);
         currentLayer = L.tileLayer(styles[0].url, {
-          maxZoom: 19,
+          maxZoom: 18,
           noWrap: true,
           updateWhenIdle: false,
-          keepBuffer: 2
+          keepBuffer: 2,
+          attribution: styles[0].attribution
         }).addTo(map);
         localStorage.setItem('mapStyleIndex', 0);
         console.log('Switched to Default layer due to tile error');
@@ -58,39 +100,49 @@ try {
   console.log('Initial layer added:', styles[savedStyleIndex].name);
 
   let userMarker = null;
+  const userName = localStorage.getItem('userName') || 'User';
 
+  // Add user marker with floating username
   const cachedLocation = localStorage.getItem('userLocation');
   if (cachedLocation) {
     const [lat, lng] = JSON.parse(cachedLocation);
     console.log('Using cached location:', [lat, lng]);
-    userMarker = L.circleMarker([lat, lng], {
-      radius: 8,
-      fillColor: '#800080',
-      color: '#800080',
-      weight: 2,
-      opacity: 1,
-      fillOpacity: 0.8,
-      className: 'user-location'
-    }).addTo(map).bindPopup('Your location');
+    const userIcon = L.divIcon({
+      className: 'user-location',
+      html: `
+        <div class="user-location">
+          <div class="user-name-marker">${userName}</div>
+          <div style="width: 16px; height: 16px; background: #800080; border-radius: 50%; border: 2px solid #800080; opacity: 0.8;"></div>
+        </div>
+      `,
+      iconSize: [16, 16],
+      iconAnchor: [8, 8],
+      popupAnchor: [0, -40]
+    });
+    userMarker = L.marker([lat, lng], { icon: userIcon }).addTo(map).bindPopup('Your location');
   }
 
-  map.locate({ setView: false, maxZoom: 19, watch: true, enableHighAccuracy: true, timeout: 5000 });
+  // Track user location but don't pan to it
+  map.locate({ setView: false, maxZoom: 18, watch: true, enableHighAccuracy: true, timeout: 5000 });
   map.on('locationfound', (e) => {
     console.log('User location found:', JSON.stringify(e.latlng));
     localStorage.setItem('userLocation', JSON.stringify([e.latlng.lat, e.latlng.lng]));
     if (userMarker) {
       map.removeLayer(userMarker);
     }
-    userMarker = L.circleMarker(e.latlng, {
-      radius: 8,
-      fillColor: '#800080',
-      color: '#800080',
-      weight: 2,
-      opacity: 1,
-      fillOpacity: 0.8,
-      className: 'user-location'
-    }).addTo(map).bindPopup('Your location');
-    map.panTo(e.latlng, { animate: true, duration: 0.5 });
+    const userIcon = L.divIcon({
+      className: 'user-location',
+      html: `
+        <div class="user-location">
+          <div class="user-name-marker">${userName}</div>
+          <div style="width: 16px; height: 16px; background: #800080; border-radius: 50%; border: 2px solid #800080; opacity: 0.8;"></div>
+        </div>
+      `,
+      iconSize: [16, 16],
+      iconAnchor: [8, 8],
+      popupAnchor: [0, -40]
+    });
+    userMarker = L.marker(e.latlng, { icon: userIcon }).addTo(map).bindPopup('Your location');
   });
   map.on('locationerror', (e) => {
     console.error('Location access denied:', e.message);
@@ -101,19 +153,21 @@ try {
     try {
       map.removeLayer(currentLayer);
       currentLayer = L.tileLayer(styles[index].url, {
-        maxZoom: 19,
+        maxZoom: 18,
         noWrap: true,
         updateWhenIdle: false,
         keepBuffer: 2,
+        attribution: styles[index].attribution,
         tileErrorHandling: function (tile, error) {
           console.error('Tile load error:', tile.src, error);
           if (styles[index].name !== 'Default') {
             map.removeLayer(currentLayer);
             currentLayer = L.tileLayer(styles[0].url, {
-              maxZoom: 19,
+              maxZoom: 18,
               noWrap: true,
               updateWhenIdle: false,
-              keepBuffer: 2
+              keepBuffer: 2,
+              attribution: styles[0].attribution
             }).addTo(map);
             localStorage.setItem('mapStyleIndex', 0);
             console.log('Switched to Default layer due to tile error');
@@ -124,6 +178,7 @@ try {
       localStorage.setItem('mapStyleIndex', index);
     } catch (e) {
       console.error('Error changing map style:', e);
+      alert('Failed to change map style. Try another option.');
     }
   };
 
@@ -140,7 +195,7 @@ try {
         if (data && data.length > 0) {
           const { lat, lon } = data[0];
           console.log('Found location:', lat, lon);
-          map.setView([lat, lon], 14);
+          map.setView([lat, lon], 14, { animate: true, duration: 0.5 });
         } else {
           console.warn('Location not found:', query);
           alert('Location not found. Try another search term.');

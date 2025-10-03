@@ -106,6 +106,20 @@
       100% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; }
     }
 
+    .user-name-marker {
+      font-family: monospace;
+      font-size: 14px;
+      color: #1a1a2e;
+      background: rgba(255, 255, 255, 0.9);
+      padding: 4px 8px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+      transform: translate(-50%, -40px);
+      white-space: nowrap;
+      text-align: center;
+      will-change: transform;
+    }
+
     .nav-bar {
       position: fixed;
       bottom: 0;
@@ -490,16 +504,16 @@
                 <button class="style-button" onclick="window.changeMapStyle(0)">Default</button>
                 <button class="style-button" onclick="window.changeMapStyle(1)">Dark</button>
                 <button class="style-button" onclick="window.changeMapStyle(2)">Light</button>
-                <button class="style-button" onclick="window.changeMapStyle(3)">Topo</button>
-                <button class="style-button" onclick="window.changeMapStyle(4)">Street</button>
-                <button class="style-button" onclick="window.changeMapStyle(5)">Voyager</button>
+                <button class="style-button" onclick="window.changeMapStyle(3)">Satellite</button>
+                <button class="style-button" onclick="window.changeMapStyle(4)">Terrain</button>
+                <button class="style-button" onclick="window.changeMapStyle(5)">Streets</button>
               </div>
             `
           },
           user: {
             title: '👤 Profile',
-            desc: 'Manage your account',
-            body: `<div class="sheet-body"><div class="user-name">${userName}</div><p>View your profile, update settings, manage preferences, and customize your experience.</p></div>`
+            desc: 'Your account',
+            body: `<div class="sheet-body"><div class="user-name">${userName}</div></div>`
           }
         };
 
