@@ -9,10 +9,11 @@ try {
   console.log('map.js loaded successfully');
 
   // Check if map is already initialized
-  let map = L.DomUtil.get('map');
-  if (map && map._leaflet_id) {
+  let map = null;
+  const mapElement = L.DomUtil.get('map');
+  if (mapElement && mapElement._leaflet_id) {
     console.log('Map already initialized, reusing existing map');
-    map = L.map(map);
+    map = L.Map.get(mapElement);
   } else {
     // Initialize the map
     map = L.map('map', {
@@ -37,20 +38,21 @@ try {
     { name: "Voyager", url: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png" }
   ];
 
-  // Initialize map with Default style
-  let currentLayer = L.tileLayer(styles[0].url, {
+  // Load saved map style from localStorage or default to 0
+  const savedStyleIndex = localStorage.getItem('mapStyleIndex') || 0;
+  let currentLayer = L.tileLayer(styles[savedStyleIndex].url, {
     maxZoom: 17,
     noWrap: true, // No tile wrapping
     updateWhenIdle: false, // Load tiles during pan
     keepBuffer: 2 // Preload tiles
   }).addTo(map);
 
-  console.log('Initial layer added:', styles[0].name);
+  console.log('Initial layer added:', styles[savedStyleIndex].name);
 
   // Track user location marker
   let userMarker = null;
 
-  // Show user location as purple ball with blur outline
+  // Show user location as static purple dot with blur outline
   map.locate({ setView: false, maxZoom: 17, watch: true, enableHighAccuracy: true, timeout: 10000 });
   map.on('locationfound', (e) => {
     console.log('User location found:', e.latlng);
@@ -58,7 +60,7 @@ try {
     if (userMarker) {
       map.removeLayer(userMarker);
     }
-    // Add new purple ball marker
+    // Add new static purple dot
     userMarker = L.circleMarker(e.latlng, {
       radius: 8,
       fillColor: '#800080', // Purple
@@ -66,14 +68,14 @@ try {
       weight: 2,
       opacity: 1,
       fillOpacity: 0.8,
-      className: 'user-location' // For blur and pulse
+      className: 'user-location' // For blur
     }).addTo(map).bindPopup('Your location');
   });
   map.on('locationerror', (e) => {
     console.error('Location access denied:', e.message);
   });
 
-  // Function to change map style
+  // Function to change map style and save to localStorage
   window.changeMapStyle = function(index) {
     console.log('Changing to style:', styles[index].name);
     try {
@@ -85,6 +87,7 @@ try {
         keepBuffer: 2
       }).addTo(map);
       console.log('New layer added:', styles[index].name);
+      localStorage.setItem('mapStyleIndex', index);
     } catch (e) {
       console.error('Error changing map style:', e);
     }

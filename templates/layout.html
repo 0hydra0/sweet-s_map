@@ -82,14 +82,7 @@
     }
 
     .user-location {
-      filter: blur(2px);
-      animation: pulse 3s infinite ease-in-out; /* Slower pulse for battery */
-    }
-
-    @keyframes pulse {
-      0% { transform: scale(1); opacity: 0.8; }
-      50% { transform: scale(1.2); opacity: 1; }
-      100% { transform: scale(1); opacity: 0.8; }
+      filter: blur(2px); /* Static blur outline */
     }
 
     /* Bottom Navigation Bar */
@@ -336,7 +329,7 @@
 
   <nav class="nav-bar">
     <button class="nav-item active" data-tab="home">
-      <i class="fas fa-home"></i>
+      <i class="fas fa-comment"></i>
     </button>
     
     <button class="nav-item" data-tab="search">
@@ -355,7 +348,7 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="/static/map.js"></script>
   <script>
-    // Fallback for changeMapStyle and searchLocation
+    // Fallback for changeMapStyle and search functions
     window.changeMapStyle = window.changeMapStyle || function(index) {
       console.warn('changeMapStyle not loaded, index:', index);
     };
@@ -458,9 +451,9 @@
       function updateContent(tab) {
         const contents = {
           home: {
-            title: '🏠 Home',
-            desc: 'Welcome to your personalized dashboard',
-            body: '<div class="sheet-body"><p>Discover trending content, your recent activities, and personalized recommendations all in one place.</p></div>'
+            title: '💬 Chat',
+            desc: 'Connect and chat with others',
+            body: '<div class="sheet-body"><p>Start a conversation, share updates, or join group chats.</p></div>'
           },
           search: {
             title: '🔍 Search',
