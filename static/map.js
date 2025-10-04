@@ -9,6 +9,8 @@ try {
   let map = null;
   let userMarker = null;
   let currentLayer = null;
+  let destinationMarker = null;
+  let routeLine = null;
 
   const mapElement = L.DomUtil.get('map');
   if (mapElement && mapElement._leaflet_id) {
@@ -123,6 +125,19 @@ try {
     return L.marker([lat, lng], { icon: userIcon }).bindPopup('Your location');
   }
 
+  function createDestinationMarker(lat, lng) {
+    const destIcon = L.divIcon({
+      className: 'destination-marker',
+      html: `
+        <div style="width: 10px; height: 10px; background: #ff4444; border-radius: 50%; border: 2px solid #ffffff; opacity: 1;"></div>
+      `,
+      iconSize: [10, 10],
+      iconAnchor: [5, 5],
+      popupAnchor: [0, -10]
+    });
+    return L.marker([lat, lng], { icon: destIcon }).bindPopup('Destination');
+  }
+
   const userName = localStorage.getItem('userName') || 'User';
   const cachedLocation = localStorage.getItem('userLocation');
   if (cachedLocation) {
@@ -131,18 +146,70 @@ try {
     userMarker = createUserMarker(lat, lng, userName, styles[savedStyleIndex].nameColor).addTo(map);
   }
 
-  map.locate({ setView: false, maxZoom: 18, watch: true, enableHighAccuracy: true, timeout: 3000, maximumAge: 0 });
+  const cachedDestination = localStorage.getItem('destination');
+  if (cachedDestination) {
+    const [lat, lng] = JSON.parse(cachedDestination);
+    console.log('Restoring destination:', [lat, lng]);
+    destinationMarker = createDestinationMarker(lat, lng).addTo(map);
+    drawRoute(JSON.parse(localStorage.getItem('userLocation') || '[20, 0]'), [lat, lng]);
+  }
+
+  map.locate({ setView: false, maxZoom: 18, watch: true, enableHighAccuracy: true, timeout: 2000, maximumAge: 0 });
   map.on('locationfound', (e) => {
     console.log('User location found:', JSON.stringify(e.latlng));
     localStorage.setItem('userLocation', JSON.stringify([e.latlng.lat, e.latlng.lng]));
     if (userMarker) {
-      map.removeLayer(userMarker);
-      userMarker = null; // Ensure no duplicates
+      userMarker.setLatLng([e.latlng.lat, e.latlng.lng], { duration: 0.5, easeLinearity: 0.5 });
+    } else {
+      userMarker = createUserMarker(e.latlng.lat, e.latlng.lng, userName, styles[savedStyleIndex].nameColor).addTo(map);
     }
-    userMarker = createUserMarker(e.latlng.lat, e.latlng.lng, userName, styles[savedStyleIndex].nameColor).addTo(map);
+    if (destinationMarker && routeLine) {
+      map.removeLayer(routeLine);
+      drawRoute([e.latlng.lat, e.latlng.lng], destinationMarker.getLatLng());
+    }
   });
   map.on('locationerror', (e) => {
     console.error('Location access denied:', e.message);
+    alert('Location access denied. Using default location.');
+  });
+
+  function drawRoute(start, end) {
+    fetch(`https://router.project-osrm.org/route/v1/walking/${start[1]},${start[0]};${end[1]},${end[0]}?overview=full&geometries=geojson`)
+      .then(response => response.json())
+      .then(data => {
+        if (data.routes && data.routes.length > 0) {
+          const coords = data.routes[0].geometry.coordinates.map(coord => [coord[1], coord[0]]);
+          routeLine = L.polyline(coords, {
+            className: 'route-line',
+            color: '#800080',
+            weight: 4,
+            opacity: 0.8
+          }).addTo(map);
+          map.fitBounds(L.latLngBounds([start, end]), { padding: [50, 50] });
+        } else {
+          console.warn('No route found');
+          alert('No route found to destination.');
+        }
+      })
+      .catch(error => {
+        console.error('Route error:', error);
+        alert('Error calculating route. Try again.');
+      });
+  }
+
+  map.on('contextmenu', (e) => {
+    if (destinationMarker) {
+      map.removeLayer(destinationMarker);
+      destinationMarker = null;
+    }
+    if (routeLine) {
+      map.removeLayer(routeLine);
+      routeLine = null;
+    }
+    destinationMarker = createDestinationMarker(e.latlng.lat, e.latlng.lng).addTo(map);
+    localStorage.setItem('destination', JSON.stringify([e.latlng.lat, e.latlng.lng]));
+    const userPos = JSON.parse(localStorage.getItem('userLocation') || '[20, 0]');
+    drawRoute(userPos, [e.latlng.lat, e.latlng.lng]);
   });
 
   window.changeMapStyle = function(index) {
@@ -210,6 +277,18 @@ try {
           const { lat, lon } = data[0];
           console.log('Found location:', lat, lon);
           map.setView([lat, lon], 14, { animate: true, duration: 0.5 });
+          if (destinationMarker) {
+            map.removeLayer(destinationMarker);
+            destinationMarker = null;
+          }
+          if (routeLine) {
+            map.removeLayer(routeLine);
+            routeLine = null;
+          }
+          destinationMarker = createDestinationMarker(lat, lon).addTo(map);
+          localStorage.setItem('destination', JSON.stringify([lat, lon]));
+          const userPos = JSON.parse(localStorage.getItem('userLocation') || '[20, 0]');
+          drawRoute(userPos, [lat, lon]);
         } else {
           console.warn('Location not found:', query);
           alert('Location not found. Try another search term.');

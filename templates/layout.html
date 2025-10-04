@@ -90,18 +90,18 @@
       position: absolute;
       top: 50%;
       left: 50%;
-      width: 8px;
-      height: 8px;
+      width: 6px;
+      height: 6px;
       background: transparent;
       border: 2px solid #800080;
       border-radius: 50%;
       transform: translate(-50%, -50%);
-      animation: wave 1.5s infinite ease-out;
+      animation: wave 1.2s infinite ease-out;
       z-index: -1;
     }
 
     @keyframes wave {
-      0% { transform: translate(-50%, -50%) scale(1); opacity: 0.6; }
+      0% { transform: translate(-50%, -50%) scale(1); opacity: 0.7; }
       100% { transform: translate(-50%, -50%) scale(2); opacity: 0; }
     }
 
@@ -116,6 +116,20 @@
       white-space: nowrap;
       text-align: center;
       will-change: transform;
+    }
+
+    .route-line {
+      stroke: #800080;
+      stroke-width: 4;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-dasharray: 10, 10;
+      animation: snake 2s linear forwards;
+    }
+
+    @keyframes snake {
+      0% { stroke-dashoffset: 1000; }
+      100% { stroke-dashoffset: 0; }
     }
 
     .nav-bar {
@@ -165,7 +179,7 @@
 
     .bottom-sheet {
       position: fixed;
-      bottom: 70px; /* Adjusted to sit above nav bar */
+      bottom: 70px;
       left: 0;
       width: 100%;
       background: #ffffff;
@@ -488,7 +502,6 @@
       const sheetContent = document.getElementById('sheetContent');
       const changeNamePopup = document.getElementById('changeNamePopup');
 
-      // Load change name popup content
       fetch('/templates/chagename.html')
         .then(response => response.text())
         .then(data => {
@@ -639,7 +652,7 @@
               <div class="sheet-body">
                 <div class="profile-container">
                   <div class="user-name">${userName}</div>
-                  <button class="change-name-btn" onclick="openChangeNamePopup()">Change</button>
+                  <button class="change-name-btn">Change</button>
                 </div>
               </div>
             `
@@ -653,6 +666,11 @@
           <p class="sheet-description">${content.desc}</p>
           ${content.body}
         `;
+
+        const changeNameBtn = document.querySelector('.change-name-btn');
+        if (changeNameBtn) {
+          changeNameBtn.addEventListener('click', openChangeNamePopup);
+        }
       }
 
       sheetContent.addEventListener('touchstart', (e) => {

@@ -42,13 +42,19 @@
       text-align: center;
       box-shadow: 0 5px 25px rgba(0, 0, 0, 0.3);
       width: 90%;
-      max-width: 300px;
+      max-width: 320px;
+      transform: scale(0.8);
+      animation: popupIn 0.4s ease-out forwards;
+    }
+
+    @keyframes popupIn {
+      to { transform: scale(1); }
     }
 
     .popup h2 {
-      font-size: 22px;
+      font-size: 24px;
       color: #1a1a2e;
-      margin-bottom: 14px;
+      margin-bottom: 16px;
     }
 
     .popup input {
@@ -58,15 +64,16 @@
       border-radius: 10px;
       background: #f8f8f8;
       color: #333;
-      font-size: 15px;
+      font-size: 16px;
       outline: none;
-      margin-bottom: 14px;
+      margin-bottom: 16px;
       transition: all 0.3s ease;
     }
 
     .popup input:focus {
       border-color: #667eea;
       background: #fff;
+      box-shadow: 0 0 8px rgba(102, 126, 234, 0.3);
     }
 
     .popup button {
@@ -76,9 +83,29 @@
       border-radius: 10px;
       background: linear-gradient(135deg, #667eea, #764ba2);
       color: #fff;
-      font-size: 15px;
+      font-size: 16px;
       cursor: pointer;
       transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .popup button::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      background: rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      transition: width 0.6s ease, height 0.6s ease;
+    }
+
+    .popup button:hover::before {
+      width: 300px;
+      height: 300px;
     }
 
     .popup button:hover {
@@ -90,7 +117,7 @@
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      font-size: 26px;
+      font-size: 28px;
       color: #fff;
       text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
       opacity: 0;
@@ -117,7 +144,7 @@
       font-weight: bold;
       font-family: monospace;
       white-space: pre;
-      font-size: 22px;
+      font-size: 24px;
       line-height: 1.2em;
       height: 1.2em;
       overflow: hidden;
@@ -160,7 +187,7 @@
     if (userName && userName.trim()) {
       window.location.href = '/map';
     } else {
-      localStorage.removeItem('userName'); // Ensure cleared cache prompts name
+      localStorage.removeItem('userName');
       document.getElementById('userName').focus();
     }
 
