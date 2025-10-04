@@ -139,7 +139,6 @@
       stroke-width: 4;
       stroke-linecap: round;
       stroke-linejoin: round;
-      stroke-dasharray: 10, 10;
       animation: snake 2s linear forwards;
     }
 
@@ -541,7 +540,6 @@
       const navItems = document.querySelectorAll('.nav-item');
       const sheetContent = document.getElementById('sheetContent');
       const changeNamePopup = document.getElementById('changeNamePopup');
-      const clearDestinationBtn = document.getElementById('clearDestination');
 
       fetch('/chagename')
         .then(response => response.text())
@@ -723,19 +721,6 @@
       sheet.addEventListener('touchmove', (e) => {
         e.stopPropagation();
       }, { passive: true });
-
-      clearDestinationBtn.addEventListener('click', () => {
-        if (destinationMarker) {
-          map.removeLayer(destinationMarker);
-          destinationMarker = null;
-        }
-        if (routeLine) {
-          map.removeLayer(routeLine);
-          routeLine = null;
-        }
-        localStorage.removeItem('destination');
-        clearDestinationBtn.style.display = 'none';
-      });
     });
   </script>
 </body>

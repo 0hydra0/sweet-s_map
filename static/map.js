@@ -29,7 +29,7 @@ try {
       maxBoundsViscosity: 1.0,
       inertia: true,
       inertiaDeceleration: 3000,
-      zoomAnimation: true,
+      zoomAnimation: false,
       fadeAnimation: true,
       markerZoomAnimation: true
     }).setView(initialView.center, initialView.zoom);
@@ -118,7 +118,7 @@ try {
           <div style="width: 24px; height: 24px; background: radial-gradient(circle at center, #A100FF 0%, #A100FF 50%, rgba(161, 0, 255, 0) 100%); border-radius: 50%; border: 2px solid #ffffff; opacity: 1;"></div>
         </div>
       `,
-      iconSize: [24, 40], // Adjusted for name and marker height
+      iconSize: [24, 40],
       iconAnchor: [12, 24],
       popupAnchor: [0, -40]
     });
@@ -177,25 +177,34 @@ try {
   });
 
   function drawRoute(start, end) {
+    if (!start || !end || start.length !== 2 || end.length !== 2) {
+      console.warn('Invalid route coordinates:', start, end);
+      return;
+    }
     fetch(`https://router.project-osrm.org/route/v1/walking/${start[1]},${start[0]};${end[1]},${end[0]}?overview=full&geometries=geojson`)
       .then(response => response.json())
       .then(data => {
         if (data.routes && data.routes.length > 0) {
           const coords = data.routes[0].geometry.coordinates.map(coord => [coord[1], coord[0]]);
+          if (routeLine) map.removeLayer(routeLine);
           routeLine = L.polyline(coords, {
             className: 'route-line',
             color: '#A100FF',
             weight: 4,
             opacity: 0.8
           }).addTo(map);
-          map.fitBounds(L.latLngBounds([start, end]), { padding: [50, 50] });
+          console.log('Route drawn successfully');
         } else {
-          console.warn('No route found');
-          alert('No route found to destination.');
+          console.warn('No route found between', start, 'and', end);
+          if (routeLine) map.removeLayer(routeLine);
+          routeLine = null;
+          alert('No route found to destination. Try a closer location.');
         }
       })
       .catch(error => {
         console.error('Route error:', error);
+        if (routeLine) map.removeLayer(routeLine);
+        routeLine = null;
         alert('Error calculating route. Try again.');
       });
   }
@@ -343,6 +352,19 @@ try {
       .catch(error => {
         console.error('Suggestion error:', error);
       });
+  };
+
+  window.clearDestination = function() {
+    if (destinationMarker) {
+      map.removeLayer(destinationMarker);
+      destinationMarker = null;
+    }
+    if (routeLine) {
+      map.removeLayer(routeLine);
+      routeLine = null;
+    }
+    localStorage.removeItem('destination');
+    document.getElementById('clearDestination').style.display = 'none';
   };
 
   currentLayer.on('loading', () => {
