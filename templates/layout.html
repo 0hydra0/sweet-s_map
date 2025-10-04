@@ -88,21 +88,20 @@
     .user-location::after {
       content: '';
       position: absolute;
-      top: 50%;
+      top: -10px;
       left: 50%;
-      width: 6px;
-      height: 6px;
-      background: transparent;
-      border: 2px solid #800080;
+      width: 20px;
+      height: 20px;
+      background: radial-gradient(circle at center, rgba(161, 0, 255, 0.8) 0%, rgba(161, 0, 255, 0) 70%);
       border-radius: 50%;
-      transform: translate(-50%, -50%);
+      transform: translateX(-50%);
       animation: wave 1.2s infinite ease-out;
       z-index: -1;
     }
 
     @keyframes wave {
-      0% { transform: translate(-50%, -50%) scale(1); opacity: 0.7; }
-      100% { transform: translate(-50%, -50%) scale(2); opacity: 0; }
+      0% { transform: translateX(-50%) scale(1); opacity: 0.7; }
+      100% { transform: translateX(-50%) scale(1.5); opacity: 0; }
     }
 
     .user-name-marker {
@@ -112,14 +111,31 @@
       padding: 4px 8px;
       border-radius: 8px;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-      transform: translate(-50%, -36px);
+      transform: translate(-50%, -50px);
       white-space: nowrap;
       text-align: center;
+      max-width: 120px;
+      overflow: hidden;
+      text-overflow: ellipsis;
       will-change: transform;
     }
 
+    .destination-marker::after {
+      content: '';
+      position: absolute;
+      top: -10px;
+      left: 50%;
+      width: 20px;
+      height: 20px;
+      background: radial-gradient(circle at center, rgba(161, 0, 255, 0.8) 0%, rgba(161, 0, 255, 0) 70%);
+      border-radius: 50%;
+      transform: translateX(-50%);
+      animation: wave 1.2s infinite ease-out;
+      z-index: -1;
+    }
+
     .route-line {
-      stroke: #800080;
+      stroke: #A100FF;
       stroke-width: 4;
       stroke-linecap: round;
       stroke-linejoin: round;
@@ -413,6 +429,29 @@
       background: linear-gradient(135deg, #764ba2, #f093fb);
     }
 
+    .clear-destination {
+      position: fixed;
+      bottom: 80px;
+      right: 20px;
+      width: 40px;
+      height: 40px;
+      background: #ff4444;
+      border: none;
+      border-radius: 50%;
+      color: #fff;
+      font-size: 20px;
+      cursor: pointer;
+      display: none;
+      z-index: 1001;
+      box-shadow: 0 4px 12px rgba(255, 68, 68, 0.4);
+      transition: all 0.3s ease;
+    }
+
+    .clear-destination:hover {
+      background: #cc0000;
+      transform: scale(1.1);
+    }
+
     @media (min-width: 768px) {
       .bottom-sheet {
         left: 50%;
@@ -475,6 +514,7 @@
   </nav>
 
   <div class="change-name-popup" id="changeNamePopup"></div>
+  <button class="clear-destination" id="clearDestination">×</button>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="/static/map.js"></script>
@@ -501,8 +541,9 @@
       const navItems = document.querySelectorAll('.nav-item');
       const sheetContent = document.getElementById('sheetContent');
       const changeNamePopup = document.getElementById('changeNamePopup');
+      const clearDestinationBtn = document.getElementById('clearDestination');
 
-      fetch('/templates/chagename.html')
+      fetch('/chagename')
         .then(response => response.text())
         .then(data => {
           changeNamePopup.innerHTML = data;
@@ -682,6 +723,19 @@
       sheet.addEventListener('touchmove', (e) => {
         e.stopPropagation();
       }, { passive: true });
+
+      clearDestinationBtn.addEventListener('click', () => {
+        if (destinationMarker) {
+          map.removeLayer(destinationMarker);
+          destinationMarker = null;
+        }
+        if (routeLine) {
+          map.removeLayer(routeLine);
+          routeLine = null;
+        }
+        localStorage.removeItem('destination');
+        clearDestinationBtn.style.display = 'none';
+      });
     });
   </script>
 </body>

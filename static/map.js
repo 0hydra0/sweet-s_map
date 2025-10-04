@@ -115,12 +115,12 @@ try {
       html: `
         <div class="user-location">
           <div class="user-name-marker" style="color: ${nameColor}">${name}</div>
-          <div style="width: 12px; height: 12px; background: #800080; border-radius: 50%; border: 2px solid #ffffff; opacity: 1;"></div>
+          <div style="width: 24px; height: 24px; background: radial-gradient(circle at center, #A100FF 0%, #A100FF 50%, rgba(161, 0, 255, 0) 100%); border-radius: 50%; border: 2px solid #ffffff; opacity: 1;"></div>
         </div>
       `,
-      iconSize: [12, 12],
-      iconAnchor: [6, 6],
-      popupAnchor: [0, -36]
+      iconSize: [24, 40], // Adjusted for name and marker height
+      iconAnchor: [12, 24],
+      popupAnchor: [0, -40]
     });
     return L.marker([lat, lng], { icon: userIcon }).bindPopup('Your location');
   }
@@ -129,11 +129,13 @@ try {
     const destIcon = L.divIcon({
       className: 'destination-marker',
       html: `
-        <div style="width: 10px; height: 10px; background: #ff4444; border-radius: 50%; border: 2px solid #ffffff; opacity: 1;"></div>
+        <div class="destination-marker">
+          <div style="width: 24px; height: 24px; background: radial-gradient(circle at center, #A100FF 0%, #A100FF 50%, rgba(161, 0, 255, 0) 100%); border-radius: 50%; border: 2px solid #ffffff; opacity: 1;"></div>
+        </div>
       `,
-      iconSize: [10, 10],
-      iconAnchor: [5, 5],
-      popupAnchor: [0, -10]
+      iconSize: [24, 24],
+      iconAnchor: [12, 12],
+      popupAnchor: [0, -24]
     });
     return L.marker([lat, lng], { icon: destIcon }).bindPopup('Destination');
   }
@@ -152,6 +154,7 @@ try {
     console.log('Restoring destination:', [lat, lng]);
     destinationMarker = createDestinationMarker(lat, lng).addTo(map);
     drawRoute(JSON.parse(localStorage.getItem('userLocation') || '[20, 0]'), [lat, lng]);
+    document.getElementById('clearDestination').style.display = 'block';
   }
 
   map.locate({ setView: false, maxZoom: 18, watch: true, enableHighAccuracy: true, timeout: 2000, maximumAge: 0 });
@@ -181,7 +184,7 @@ try {
           const coords = data.routes[0].geometry.coordinates.map(coord => [coord[1], coord[0]]);
           routeLine = L.polyline(coords, {
             className: 'route-line',
-            color: '#800080',
+            color: '#A100FF',
             weight: 4,
             opacity: 0.8
           }).addTo(map);
@@ -210,6 +213,7 @@ try {
     localStorage.setItem('destination', JSON.stringify([e.latlng.lat, e.latlng.lng]));
     const userPos = JSON.parse(localStorage.getItem('userLocation') || '[20, 0]');
     drawRoute(userPos, [e.latlng.lat, e.latlng.lng]);
+    document.getElementById('clearDestination').style.display = 'block';
   });
 
   window.changeMapStyle = function(index) {
@@ -289,6 +293,7 @@ try {
           localStorage.setItem('destination', JSON.stringify([lat, lon]));
           const userPos = JSON.parse(localStorage.getItem('userLocation') || '[20, 0]');
           drawRoute(userPos, [lat, lon]);
+          document.getElementById('clearDestination').style.display = 'block';
         } else {
           console.warn('Location not found:', query);
           alert('Location not found. Try another search term.');
